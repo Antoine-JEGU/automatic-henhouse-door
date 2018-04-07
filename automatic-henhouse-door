@@ -1,0 +1,85 @@
+//************************** Programme poullaier 24 & 25 mars 2018 (changement d'heure à l'heure d'été) ****************
+#include <Wire.h>
+#include <RTClib.h>
+RTC_DS1307 RTC;
+
+//broche analogique 3 OU broche numérique 3
+const int bouton = 3;
+//la valeur lue sera comprise entre 0 et 1023
+int valeurLue = 0;
+
+uint8_t configData[4] = {0};
+int up_moteur = 12; //monte quand up_moteur = 1
+int down_moteur = 11; //descend quand down_moteur = 1
+int minutes,minutes_leve,minutes_couche;
+void setup()
+{
+	digitalWrite(up_moteur, LOW);
+	digitalWrite(down_moteur, LOW);
+  Serial.begin(57600);
+  Wire.begin();
+  RTC.begin();
+  //following line sets the RTC to the date & time this sketch was compiled
+  //RTC.adjust(DateTime(__DATE__, __TIME__)); //décomenter pour mettre à l'heure le module
+
+  configData[0] = 07; //heure de levé
+  configData[1] = 00; //minute de levé
+  configData[2] = 21; //heure de couché
+  configData[3] = 00; //minute de couché
+}
+void loop()
+{ 
+    DateTime now = RTC.now(); //heure du module RTC (en retard de 11 secondes)
+    DateTime time_exact (now.get() + 7 * 86400L + 11); //vrai heure du PC
+    DateTime DTHeureLeve (time_exact.year(), time_exact.month(), time_exact.day(), configData[0], configData[1], 0); //heure de levé
+    DateTime DTHeureCouche (time_exact.year(), time_exact.month(), time_exact.day(), configData[2], configData[3], 0); //heure de couché
+    
+    minutes = (time_exact.hour()*60) + time_exact.minute(); //somme des minutes de la journée
+    minutes_leve = (DTHeureLeve.hour()*60) + DTHeureLeve.minute(); //somme des minutes heure de levé
+    minutes_couche = (DTHeureCouche.hour()*60) + DTHeureCouche.minute(); //somme des minutes de couché
+
+    //on mesure la tension du capteur sur la broche analogique 3
+    valeurLue = analogRead(bouton);
+    if (valeurLue <= 50) {
+      fermer_porte();
+    }
+    if (valeurLue >= 700) {
+      ouvrir_porte();
+    }
+    if (valeurLue > 50 && valeurLue < 700){
+      //***********ouvrir porte***************
+      if ((minutes >= minutes_leve) && (minutes < minutes_couche))
+      {
+        ouvrir_porte();
+      }
+      //***********fermer porte****************
+      if ((minutes >= minutes_couche) || (minutes < minutes_leve))
+      {
+        fermer_porte();
+      }
+    }
+    Serial.print("Heure exact : ");
+    Serial.print(time_exact.hour(), DEC);
+    Serial.print(" heures ");
+    Serial.print(time_exact.minute(), DEC);
+    Serial.print(" min ");
+    Serial.print(time_exact.second(), DEC);
+    Serial.print(" sec\n");
+    Serial.print(valeurLue);
+    
+    delay(1000);
+}
+void ouvrir_porte()
+{
+    digitalWrite(down_moteur, LOW);
+    digitalWrite(up_moteur, HIGH);
+    Serial.print("\n> OUVERTURE");
+    Serial.println();
+}
+void fermer_porte()
+{
+    digitalWrite(up_moteur, LOW);
+    digitalWrite(down_moteur, HIGH);
+    Serial.print("\n> FERMETURE");
+    Serial.println();
+}
