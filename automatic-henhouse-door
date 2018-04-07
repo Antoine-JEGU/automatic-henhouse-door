@@ -20,7 +20,7 @@ void setup()
   Wire.begin();
   RTC.begin();
   //following line sets the RTC to the date & time this sketch was compiled
-  //RTC.adjust(DateTime(__DATE__, __TIME__)); //décomenter pour mettre à l'heure le module
+  //RTC.adjust(DateTime(__DATE__, __TIME__)); //décommenter pour mettre à l'heure le module
 
   configData[0] = 07; //heure de levé
   configData[1] = 00; //minute de levé
